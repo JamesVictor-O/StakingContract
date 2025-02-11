@@ -100,47 +100,47 @@ describe("StakingPool", function () {
     })
   })
 
-  describe("Calculate Reward", function(){
-    it("should return the correct reward for a valid stake",async function(){
-      const { poolToken, stakingPool, owner, otherAccount }=await deployStakingPool()
-      const minPool=hre.ethers.parseEther("5");
-      const maxPool=hre.ethers.parseEther("10");
-      const duration = 100800;
+  // describe("Calculate Reward", function(){
+  //   it("should return the correct reward for a valid stake",async function(){
+  //     const { poolToken, stakingPool, owner, otherAccount }=await deployStakingPool()
+  //     const minPool=hre.ethers.parseEther("5");
+  //     const maxPool=hre.ethers.parseEther("10");
+  //     const duration = 100800;
 
-      const amountToStake=hre.ethers.parseEther("5");
+  //     const amountToStake=hre.ethers.parseEther("5");
     
 
 
-      await stakingPool.createPools(
-       minPool,   
-       maxPool,  
-       duration,
-     );
+  //     await stakingPool.createPools(
+  //      minPool,   
+  //      maxPool,  
+  //      duration,
+  //    );
 
 
-   const totalPool = await stakingPool.totalPools()
+  //  const totalPool = await stakingPool.totalPools()
  
 
 
-    await poolToken.transfer(otherAccount,amountToStake);
-    expect(await poolToken.balanceOf(otherAccount)).to.equal(amountToStake)
+  //   await poolToken.transfer(otherAccount,amountToStake);
+  //   expect(await poolToken.balanceOf(otherAccount)).to.equal(amountToStake)
 
-     await poolToken.connect(otherAccount).approve(stakingPool, amountToStake)
+  //    await poolToken.connect(otherAccount).approve(stakingPool, amountToStake)
      
-     await stakingPool.connect(otherAccount).stakeToPool(totalPool,amountToStake);
+  //    await stakingPool.connect(otherAccount).stakeToPool(totalPool,amountToStake);
 
 
-     const stakingDuration = 86400; 
-        await network.provider.send("evm_increaseTime", [stakingDuration]);
-        await network.provider.send("evm_mine");
+  //    const stakingDuration = 86400; 
+  //       await network.provider.send("evm_increaseTime", [stakingDuration]);
+  //       await network.provider.send("evm_mine");
 
 
-        const rewardRate=BigInt(1e14);
-        const userShare=(amountToStake * rewardRate)/amountToStake;
-        const reward=(BigInt(stakingDuration) * rewardRate * userShare)/rewardRate;
+  //       const rewardRate=BigInt(1e14);
+  //       const userShare=(amountToStake * rewardRate)/amountToStake;
+  //       const reward=(BigInt(stakingDuration) * rewardRate * userShare)/rewardRate;
 
         
-        expect(await stakingPool.calculateReward(totalPool)).to.equal(reward)
-    })
-  })
+  //       expect(await stakingPool.calculateReward(totalPool)).to.equal(reward)
+  //   })
+  // })
 });

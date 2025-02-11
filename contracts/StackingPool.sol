@@ -40,6 +40,21 @@ contract StakingPool {
    event PoolCreated(address _creator, uint id);
    event Staked(address _staker, uint _amount);
 
+
+
+
+
+
+//    error
+
+    error InsufficientBalance();
+    error AmountTooLow();
+    error AmountTooHigh();
+    error StakingPeriodNotEnded();
+    error StakingPeriodEnded();
+    error InvalidPoolId();
+    error IsZero();
+
     // create pools
     function createPools(uint _minStackAmount, uint _maxStackAmount, uint _duration) external {
         totalPools++;
@@ -60,12 +75,14 @@ contract StakingPool {
     // function stack in a pool
 
     function stakeToPool(uint _poolID,uint _amountTostake) external {
-        require(_poolID <= totalPools, "Invalid Poll, Pool has not been created");
-        require(_amountTostake > 0, "Can't stack zero");
-        require(_amountTostake >= stakingPools[_poolID].minAmountToStack, "Amount to low to be stacked In this Pool");
-        require(_amountTostake <= stakingPools[_poolID].maxAmountToStack, "Amount to High to be stacked In this Pool");
-        require(block.timestamp <= stakingPools[_poolID].stackDuration, "Staking period has ended"); 
-        require(token.balanceOf(msg.sender) <= _amountTostake, "Insufficient Balance");
+         
+        if (_poolID > totalPools) revert InvalidPoolId();
+        if (_amountTostake < stakingPools[_poolID].minAmountToStack) revert AmountTooLow();
+        if (_amountTostake > stakingPools[_poolID].maxAmountToStack) revert AmountTooHigh();
+        if (block.timestamp > stakingPools[_poolID].stackDuration) revert StakingPeriodEnded();
+
+        if (token.balanceOf(msg.sender) < _amountTostake) revert InsufficientBalance();
+
         
         token.transferFrom(msg.sender, address(this), _amountTostake);
         stakingPools[_poolID].totalAmountstaked += _amountTostake;
@@ -104,8 +121,5 @@ contract StakingPool {
 
        userStakes[_poolID][msg.sender].timeStaked=block.timestamp;
     }
-
-
-
 
 }
