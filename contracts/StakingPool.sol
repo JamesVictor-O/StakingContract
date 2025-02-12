@@ -1,74 +1,59 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.28;
 import "./interface/IERC20.sol";
+import { Error } from "./libraries/Error.sol";
+import { Event } from "./libraries/Event.sol";
 
 
 contract StakingPool {
-     IERC20 public token;
-     address public owner;
-    constructor(address _tokenAddress){
-        token=IERC20(_tokenAddress);
-        owner= msg.sender;
-    }
+    IERC20 public token;
+    address public owner;
 
+    constructor(address _tokenAddress){
+        token = IERC20(_tokenAddress);
+        owner = msg.sender;
+    }
     
     struct PoolInfo{
         address creator;
-        uint minAmountToStack;
-        uint maxAmountToStack;
+        uint minAmountToStake;
+        uint maxAmountToStake;
         uint stackDuration;
         uint startTime;
         uint totalAmountstaked;
         IERC20  tokenType;
-
     }
+
     struct Staker{
         uint amount;
         uint  timeStaked;
     }
-    //   mapping for pools
-    mapping(uint => PoolInfo) public stakingPools;
+
+    mapping(uint => PoolInfo) public stakingPools; // mapping for pools
     uint256 public totalPools;
-    // mapping for address who stack
-    mapping(uint => mapping(address => Staker)) userStakes;
-
-
-    //  total amount staked in a po
-    mapping(uint256 => uint256) public totalTokenStaked;
-
-    // event 
-   event PoolCreated(address _creator, uint id);
-   event Staked(address _staker, uint _amount);
-
-
-
-
-
-
-//    error
-
-    error InsufficientBalance();
-    error AmountTooLow();
-    error AmountTooHigh();
-    error StakingPeriodNotEnded();
-    error StakingPeriodEnded();
-    error InvalidPoolId();
-    error IsZero();
+    mapping(uint => mapping(address => Staker)) userStakes; // mapping for address who stack
+    mapping(uint256 => uint256) public totalTokenStaked; //  total amount staked in a po
 
     // create pools
-    function createPools(uint _minStackAmount, uint _maxStackAmount, uint _duration) external {
+    function createPools(uint _minStakeAmount, uint _maxStakeAmount, uint _duration) external {
+        require( _minStakeAmount > 0, Error.MinAmountLow());
+        require( _maxStakeAmount > 0, Error.MaxAmountLow());
+        require( _duration > block.timestamp, Error.InvalidDuration());
+        require(_maxStakeAmount > _minStakeAmount, Error.MaxAmountSHouldBeGreaterThanMin());
+
         totalPools++;
-        stakingPools[totalPools]=PoolInfo({
+
+        stakingPools[totalPools] = PoolInfo({
             creator:msg.sender,
-            minAmountToStack:_minStackAmount,
-            maxAmountToStack:_maxStackAmount,
+            minAmountToStake:_minStakeAmount,
+            maxAmountToStake:_maxStakeAmount,
             totalAmountstaked: 0,
             stackDuration:block.timestamp + _duration,
             startTime:block.timestamp,
             tokenType:token
         });
 
-      emit PoolCreated(msg.sender, totalPools);
+      emit Event.PoolCreated(msg.sender, totalPools);
     }
 
 
@@ -76,12 +61,12 @@ contract StakingPool {
 
     function stakeToPool(uint _poolID,uint _amountTostake) external {
          
-        if (_poolID > totalPools) revert InvalidPoolId();
-        if (_amountTostake < stakingPools[_poolID].minAmountToStack) revert AmountTooLow();
-        if (_amountTostake > stakingPools[_poolID].maxAmountToStack) revert AmountTooHigh();
-        if (block.timestamp > stakingPools[_poolID].stackDuration) revert StakingPeriodEnded();
+        if (_poolID > totalPools) revert Error.InvalidPoolId();
+        if (_amountTostake < stakingPools[_poolID].minAmountToStake) revert Error.AmountTooLow();
+        if (_amountTostake > stakingPools[_poolID].maxAmountToStake) revert Error.AmountTooHigh();
+        if (block.timestamp > stakingPools[_poolID].stackDuration) revert Error.StakingPeriodEnded();
 
-        if (token.balanceOf(msg.sender) < _amountTostake) revert InsufficientBalance();
+        if (token.balanceOf(msg.sender) < _amountTostake) revert Error.InsufficientBalance();
 
         
         token.transferFrom(msg.sender, address(this), _amountTostake);
@@ -93,7 +78,7 @@ contract StakingPool {
             timeStaked:block.timestamp
         });
 
-        emit Staked(msg.sender, _amountTostake);
+        emit Event.Staked(msg.sender, _amountTostake);
     }
 
     // create distribute calculate reward
