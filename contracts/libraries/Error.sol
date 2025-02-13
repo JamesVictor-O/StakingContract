@@ -10,9 +10,10 @@ library Error {
     error InvalidPoolId();
     error IsZero();
 
-
+    error StakingNotStarted();
     error MaxAmountSHouldBeGreaterThanMin();
     error MinAmountLow();
     error MaxAmountLow();
     error InvalidDuration();
+    error PoolMax();
 }

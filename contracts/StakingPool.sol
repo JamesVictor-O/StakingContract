@@ -8,6 +8,8 @@ import { Event } from "./libraries/Event.sol";
 contract StakingPool {
     IERC20 public token;
     address public owner;
+    uint256 public totalPools;
+    uint constant private Max_PooL=6;
 
     constructor(address _tokenAddress){
         token = IERC20(_tokenAddress);
@@ -21,7 +23,6 @@ contract StakingPool {
         uint stackDuration;
         uint startTime;
         uint totalAmountstaked;
-        IERC20  tokenType;
     }
 
     struct Staker{
@@ -30,16 +31,23 @@ contract StakingPool {
     }
 
     mapping(uint => PoolInfo) public stakingPools; // mapping for pools
-    uint256 public totalPools;
     mapping(uint => mapping(address => Staker)) userStakes; // mapping for address who stack
     mapping(uint256 => uint256) public totalTokenStaked; //  total amount staked in a po
+    
+    //  modifiers
+
+    modifier OnlyOwner(){
+        require(msg.sender == owner, "Only owner can create pool");
+        _;
+    }
+
 
     // create pools
-    function createPools(uint _minStakeAmount, uint _maxStakeAmount, uint _duration) external {
-        require( _minStakeAmount > 0, Error.MinAmountLow());
-        require( _maxStakeAmount > 0, Error.MaxAmountLow());
-        require( _duration > block.timestamp, Error.InvalidDuration());
-        require(_maxStakeAmount > _minStakeAmount, Error.MaxAmountSHouldBeGreaterThanMin());
+    function createPools(uint _minStakeAmount, uint _maxStakeAmount, uint _duration) external OnlyOwner{
+        if( _minStakeAmount <= 0) revert  Error.MinAmountLow();
+        if(_maxStakeAmount <= 0) revert   Error.MaxAmountLow();
+        if( _duration  < block.timestamp) revert Error.InvalidDuration();
+        if(totalPools > Max_PooL-1) revert Error.PoolMax();
 
         totalPools++;
 
@@ -47,10 +55,9 @@ contract StakingPool {
             creator:msg.sender,
             minAmountToStake:_minStakeAmount,
             maxAmountToStake:_maxStakeAmount,
-            totalAmountstaked: 0,
             stackDuration:block.timestamp + _duration,
             startTime:block.timestamp,
-            tokenType:token
+             totalAmountstaked: 0
         });
 
       emit Event.PoolCreated(msg.sender, totalPools);
@@ -64,7 +71,8 @@ contract StakingPool {
         if (_poolID > totalPools) revert Error.InvalidPoolId();
         if (_amountTostake < stakingPools[_poolID].minAmountToStake) revert Error.AmountTooLow();
         if (_amountTostake > stakingPools[_poolID].maxAmountToStake) revert Error.AmountTooHigh();
-        if (block.timestamp > stakingPools[_poolID].stackDuration) revert Error.StakingPeriodEnded();
+       if (block.timestamp < stakingPools[_poolID].startTime) revert Error.StakingNotStarted();
+    //    if (block.timestamp > stakingPools[_poolID].endTime) revert Error.StakingPeriodEnded();
 
         if (token.balanceOf(msg.sender) < _amountTostake) revert Error.InsufficientBalance();
 
