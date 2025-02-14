@@ -9,6 +9,7 @@ library Error {
     error StakingPeriodEnded();
     error InvalidPoolId();
     error IsZero();
+    error NoStakeFound();
 
     error StakingNotStarted();
     error MaxAmountSHouldBeGreaterThanMin();

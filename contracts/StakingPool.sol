@@ -31,7 +31,7 @@ contract StakingPool {
     }
 
     mapping(uint => PoolInfo) public stakingPools; // mapping for pools
-    mapping(uint => mapping(address => Staker)) userStakes; // mapping for address who stack
+    mapping(uint => mapping(address => Staker)) public userStakes; // mapping for address who stack
     mapping(uint256 => uint256) public totalTokenStaked; //  total amount staked in a po
     
     //  modifiers
@@ -91,24 +91,30 @@ contract StakingPool {
 
     // create distribute calculate reward
 
-    function calculateReward(uint _poolID) public view returns(uint){
-        uint amountStaked=userStakes[_poolID][msg.sender].amount;
-        uint durationOfStaking=userStakes[_poolID][msg.sender].timeStaked;
-        uint totalAmountInPool=stakingPools[_poolID].totalAmountstaked;
-        
-        uint stakingDuration = block.timestamp - durationOfStaking;
+  function calculateReward(uint _poolID) public view returns (uint) {
+    if (_poolID > totalPools) revert Error.InvalidPoolId();
 
-          uint rewardRate = 1e14;
+    uint amountStaked = userStakes[_poolID][msg.sender].amount;
+    if (amountStaked == 0) revert Error.NoStakeFound();
 
-          uint userShare=(amountStaked * rewardRate)/totalAmountInPool;
+    uint startTime = userStakes[_poolID][msg.sender].timeStaked;
+    uint totalAmountInPool = stakingPools[_poolID].totalAmountstaked;
+    
+    uint stakingDuration = block.timestamp - startTime;
+    
+    uint rewardRate = 1e6;  
 
-          uint reward= (stakingDuration * rewardRate *userShare)/1e14;
+    if (totalAmountInPool == 0) return 0; 
 
-          return reward;
-    }
+    uint userShare = (amountStaked * 1e18) / totalAmountInPool; // Scale up before division
+    uint reward = (stakingDuration * rewardRate * userShare) / 1e18; // Scale down after multiplication
+
+    return reward;
+}
+
 
     function withdrawReward(uint _poolID) external{
-       require(userStakes[_poolID][msg.sender].amount > 0,"You did not stack in this Pool");
+       require(userStakes[_poolID][msg.sender].amount > 0,"You did not stake in this Pool");
        uint amountToWithdraw=calculateReward(_poolID);
        token.transfer(msg.sender,amountToWithdraw);
 
